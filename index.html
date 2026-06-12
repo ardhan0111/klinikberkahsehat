@@ -73,6 +73,8 @@ main{max-width:1200px;margin:0 auto;padding:24px}
 .search-bar input:focus{border-color:var(--primary)}
 .btn-outline{background:var(--white);color:var(--primary);border:1px solid var(--primary);padding:10px 20px;border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-size:13px;font-weight:600;transition:all .2s}
 .btn-outline:hover{background:var(--primary);color:#fff}
+.btn-delete{border:1px solid var(--red-lt);color:var(--red);background:var(--white);padding:6px;border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;font-size:16px}
+.btn-delete:hover{background:var(--red);color:#fff;border-color:var(--red)}
 
 /* TABLE */
 .card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:24px}
@@ -131,8 +133,10 @@ tr:hover td{background:var(--primary-bg)}
 
 /* TERAPIS CARD */
 .terapis-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:24px}
-.terapis-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;box-shadow:var(--shadow);transition:all .2s}
+.terapis-card{position:relative;background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;box-shadow:var(--shadow);transition:all .2s}
 .terapis-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.terapis-card .btn-delete-terapis{position:absolute;top:12px;right:12px;border:none;background:transparent;color:var(--slate-lt);cursor:pointer;font-size:18px;transition:all .15s;padding:4px;display:flex;align-items:center;justify-content:center}
+.terapis-card .btn-delete-terapis:hover{color:var(--red)}
 .terapis-card .terapis-avatar{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;margin:0 auto 12px}
 .terapis-card .terapis-name{font-size:15px;font-weight:600;color:var(--slate);margin-bottom:4px}
 .terapis-card .terapis-role{font-size:12px;color:var(--slate-lt);margin-bottom:12px}
@@ -303,7 +307,7 @@ tr:hover td{background:var(--primary-bg)}
     <div class="card">
       <div class="table-container">
         <table>
-          <thead><tr><th>Pasien</th><th>Jenis Terapi</th><th>Terapis</th></tr></thead>
+          <thead><tr><th>Pasien</th><th>Jenis Terapi</th><th>Terapis</th><th style="width:80px">Aksi</th></tr></thead>
           <tbody id="pasien-tbody-dash"></tbody>
         </table>
       </div>
@@ -350,7 +354,7 @@ tr:hover td{background:var(--primary-bg)}
     <div class="card">
       <div class="table-container">
         <table>
-          <thead><tr><th>ID Pasien</th><th>Nama</th><th>Jenis Terapi Terakhir</th><th>Terapis Penanggung Jawab</th></tr></thead>
+          <thead><tr><th>ID Pasien</th><th>Nama</th><th>Jenis Terapi Terakhir</th><th>Terapis Penanggung Jawab</th><th style="width:80px">Aksi</th></tr></thead>
           <tbody id="pasien-tbody-full"></tbody>
         </table>
       </div>
@@ -700,6 +704,26 @@ function getDemoData(fnName, args) {
     demoTerapisData.push(newTerapis);
     return { success: true, msg: 'Staff ' + d.username + ' berhasil ditambahkan.' };
   }
+  if (fnName === 'hapusPasienBackend') {
+    const idPasien = args[0];
+    const index = demoDashboardData.pasien.findIndex(p => p.ID_Pasien === idPasien);
+    if (index !== -1) {
+      demoDashboardData.pasien.splice(index, 1);
+      demoDashboardData.totalPasien = demoDashboardData.pasien.length;
+      demoLaporanData.totalPasien = demoDashboardData.pasien.length;
+      return 'Pasien berhasil dihapus.';
+    }
+    return 'Error: ID Pasien tidak ditemukan.';
+  }
+  if (fnName === 'hapusStaffBackend') {
+    const username = args[0];
+    const index = demoTerapisData.findIndex(t => t.Username === username);
+    if (index !== -1) {
+      demoTerapisData.splice(index, 1);
+      return 'Terapis berhasil dihapus.';
+    }
+    return 'Error: Username tidak ditemukan.';
+  }
   return null;
 }
 
@@ -759,7 +783,7 @@ function renderPasienDash() {
   const slice = filteredPasienDash.slice(start, start + PER_PAGE_DASH);
 
   if (slice.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:32px;color:var(--slate-lt)">Tidak ada data pasien ditemukan</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--slate-lt)">Tidak ada data pasien ditemukan</td></tr>';
   } else {
     tbody.innerHTML = slice.map(p => {
       const color = getAvatarColor(p.Nama);
@@ -767,6 +791,11 @@ function renderPasienDash() {
         <td><div class="avatar-cell"><div class="avatar" style="background:${color}">${getInitials(p.Nama)}</div><div><span class="avatar-name">${p.Nama}</span><span class="avatar-id">${p.ID_Pasien}</span></div></div></td>
         <td>${p.jenisTerapi || '-'}</td>
         <td>${p.terapis || '-'}</td>
+        <td>
+          <button class="btn-delete" onclick="doHapusPasien('${p.ID_Pasien}')" title="Hapus Pasien">
+            <iconify-icon icon="mdi:trash-can-outline"></iconify-icon>
+          </button>
+        </td>
       </tr>`;
     }).join('');
   }
@@ -836,7 +865,7 @@ function renderPasienFull() {
   const slice = filteredPasienFull.slice(start, start + PER_PAGE_FULL);
 
   if (slice.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--slate-lt)">Tidak ada data pasien ditemukan</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--slate-lt)">Tidak ada data pasien ditemukan</td></tr>';
   } else {
     tbody.innerHTML = slice.map(p => {
       const color = getAvatarColor(p.Nama);
@@ -845,6 +874,11 @@ function renderPasienFull() {
         <td><div class="avatar-cell"><div class="avatar" style="background:${color}">${getInitials(p.Nama)}</div><span class="avatar-name">${p.Nama}</span></div></td>
         <td>${p.jenisTerapi || '-'}</td>
         <td>${p.terapis || '-'}</td>
+        <td>
+          <button class="btn-delete" onclick="doHapusPasien('${p.ID_Pasien}')" title="Hapus Pasien">
+            <iconify-icon icon="mdi:trash-can-outline"></iconify-icon>
+          </button>
+        </td>
       </tr>`;
     }).join('');
   }
@@ -878,6 +912,9 @@ function loadTerapis() {
     grid.innerHTML = data.map(t => {
       const color = getAvatarColor(t.Username);
       return `<div class="terapis-card">
+        <button class="btn-delete-terapis" onclick="doHapusTerapis('${t.Username}')" title="Hapus Terapis">
+          <iconify-icon icon="mdi:trash-can-outline"></iconify-icon>
+        </button>
         <div class="terapis-avatar" style="background:${color}">${getInitials(t.Username)}</div>
         <div class="terapis-name">${t.Username}</div>
         <div class="terapis-role">${t.Role || 'Terapis'}</div>
@@ -1026,6 +1063,38 @@ function syncData() {
   allPasien = [];
   loadDashboard();
   toast('Data berhasil disinkronkan!', 'success');
+}
+
+// ===== DELETE PASIEN & TERAPIS =====
+function doHapusPasien(idPasien) {
+  if (confirm('Apakah Anda yakin ingin menghapus pasien dengan ID: ' + idPasien + '?')) {
+    gasRun('hapusPasienBackend', [idPasien], function(res) {
+      if (res && (res.indexOf('Error') === -1 || res.startsWith('Pasien'))) {
+        toast('Pasien berhasil dihapus', 'success');
+        allPasien = [];
+        loadDashboard();
+        if (document.getElementById('sec-pasien').classList.contains('active')) {
+          loadPasienPage();
+        }
+      } else {
+        toast(res || 'Gagal menghapus pasien', 'error');
+      }
+    });
+  }
+}
+
+function doHapusTerapis(username) {
+  if (confirm('Apakah Anda yakin ingin menghapus terapis: ' + username + '?')) {
+    gasRun('hapusStaffBackend', [username], function(res) {
+      if (res && (res.indexOf('Error') === -1 || res.startsWith('Terapis/Staff') || res.startsWith('Terapis'))) {
+        toast('Terapis berhasil dihapus', 'success');
+        loadTerapis();
+        loadDashboard();
+      } else {
+        toast(res || 'Gagal menghapus terapis', 'error');
+      }
+    });
+  }
 }
 
 // ===== UTILITIES =====

@@ -426,6 +426,10 @@ function doPost(e) {
       result = getManagementData();
     } else if (fnName === "hapusData") {
       result = hapusData(args[0], args[1]);
+    } else if (fnName === "hapusPasienBackend") {
+      result = hapusPasienBackend(args[0]);
+    } else if (fnName === "hapusStaffBackend") {
+      result = hapusStaffBackend(args[0]);
     } else if (fnName === "tambahPasienBackend") {
       result = tambahPasienBackend(args[0]);
     } else if (fnName === "tambahStaffBackend") {
@@ -461,5 +465,40 @@ function doPost(e) {
     // Mengembalikan hasil error jika terjadi kegagalan
     return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.message }))
       .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// --- DELETE PATIENTS/STAFF BY ID ---
+function hapusPasienBackend(idPasien) {
+  try {
+    const sheet = SS.getSheetByName("Pasien");
+    if (!sheet) return "Error: Sheet Pasien tidak ditemukan!";
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]).toUpperCase() === idPasien.toUpperCase()) {
+        sheet.deleteRow(i + 1);
+        return "Pasien berhasil dihapus.";
+      }
+    }
+    return "Error: ID Pasien tidak ditemukan.";
+  } catch(e) {
+    return "Error: " + e.message;
+  }
+}
+
+function hapusStaffBackend(username) {
+  try {
+    const sheet = SS.getSheetByName("Users");
+    if (!sheet) return "Error: Sheet Users tidak ditemukan!";
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][1]).toLowerCase() === username.toLowerCase()) {
+        sheet.deleteRow(i + 1);
+        return "Terapis/Staff berhasil dihapus.";
+      }
+    }
+    return "Error: Username tidak ditemukan.";
+  } catch(e) {
+    return "Error: " + e.message;
   }
 }
