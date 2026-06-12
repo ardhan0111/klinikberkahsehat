@@ -533,7 +533,8 @@ function initDemoData() {
   const lastPool = ['Rahayu', 'Hartono', 'Wulandari', 'Fauzi', 'Agustina', 'Sari', 'Pratama', 'Hidayah', 'Setiawan', 'Permata', 'Kusuma', 'Wijaya', 'Handayani', 'Maulana', 'Sulistyo', 'Maharani', 'Prasetyo', 'Supriadi', 'Utami', 'Gunawan', 'Saputra', 'Lestari', 'Hidayat', 'Kurniawan', 'Nugroho', 'Budiman', 'Susanto', 'Hadi', 'Wibowo', 'Santoso'];
 
   const namesSet = new Set();
-  while (namesSet.size < 20) {
+  const totalPasienVal = Math.floor(Math.random() * 41) + 60; // 60 - 100 pasien random
+  while (namesSet.size < totalPasienVal) {
     const isMale = Math.random() < 0.5;
     const first = isMale ? 
       firstPoolMale[Math.floor(Math.random() * firstPoolMale.length)] :
@@ -558,15 +559,23 @@ function initDemoData() {
     ID_Pasien: 'PT-' + (2501 + i), Nama: n, NIK: '320100' + (1000 + i), JK: i % 2 ? 'Laki-laki' : 'Perempuan',
     No_WA: '0812' + (3000000 + i), jenisTerapi: terapi[i % terapi.length], terapis: therapists[i % therapists.length]
   }));
-  const jadwal = names.slice(0, 8).map((n, i) => ({
+
+  // Generate random sessions (between 8 and 14) for today
+  const totalSesiHariIni = Math.floor(Math.random() * 7) + 8; // 8 - 14
+  const selesaiHariIni = Math.floor(Math.random() * (totalSesiHariIni - 3)) + 3; // minimal 3 selesai
+  const antrianHariIni = totalSesiHariIni - selesaiHariIni;
+
+  const jadwal = names.slice(0, totalSesiHariIni).map((n, i) => ({
     ID_Jadwal: 'JDW-' + (1001 + i), ID_Pasien: 'PT-' + (2501 + i), Nama: n,
     Jam: ('0' + (8 + Math.floor(i / 2))).slice(-2) + ':' + (i % 2 ? '30' : '00'),
-    Status: i < 4 ? 'Selesai' : 'Terjadwal', jenisTerapi: terapi[i % terapi.length], terapis: therapists[i % therapists.length]
+    Status: i < selesaiHariIni ? 'Selesai' : 'Terjadwal', jenisTerapi: terapi[i % terapi.length], terapis: therapists[i % therapists.length]
   }));
 
+  const totalRMVal = totalPasienVal + Math.floor(Math.random() * 40) + 15; // random rekam medis
+
   demoDashboardData = {
-    totalPasien: 20, sesiHariIni: 8, antrianHariIni: 4, selesaiHariIni: 4,
-    pasien: pasien, jadwalHariIni: jadwal, totalTerapis: 4, totalRM: 35,
+    totalPasien: totalPasienVal, sesiHariIni: totalSesiHariIni, antrianHariIni: antrianHariIni, selesaiHariIni: selesaiHariIni,
+    pasien: pasien, jadwalHariIni: jadwal, totalTerapis: 4, totalRM: totalRMVal,
     recentActivity: [
       { type: 'rekam_medis', nama: names[0], tindakan: 'Terapi Muskuloskeletal', terapis: therapists[0], tanggal: 'Baru saja' },
       { type: 'rekam_medis', nama: names[1], tindakan: 'Terapi Neurologis', terapis: therapists[1], tanggal: '32 menit lalu' },
@@ -574,16 +583,38 @@ function initDemoData() {
     ]
   };
 
-  const bd = {}; terapi.forEach((t, i) => bd[t] = 3 + (i < 2 ? 1 : 0));
-  demoLaporanData = { totalPasien: 20, totalRM: 35, totalJadwal: 42, selesaiAll: 38, selesaiHariIni: 4, antrianHariIni: 4, rasioKehadiran: 94.8, terapiBreakdown: bd, terfavorit: 'Terapi Muskuloskeletal' };
+  const bd = {};
+  let maxCount = 0;
+  let terfavorit = '';
+  terapi.forEach(t => {
+    const count = Math.floor(Math.random() * 20) + 5; // 5 - 24 pasien per terapi
+    bd[t] = count;
+    if (count > maxCount) {
+      maxCount = count;
+      terfavorit = t;
+    }
+  });
 
-  demoTerapisData = therapists.map((t, i) => ({ ID_User: 'USR-' + (1001 + i), Username: t, Role: 'Terapis', totalSesi: 8 + i }));
+  const totalJadwalAll = totalRMVal + Math.floor(Math.random() * 50) + 20;
+  const selesaiAll = Math.floor(totalJadwalAll * (0.85 + Math.random() * 0.1));
+  const rasio = Math.round((selesaiAll / totalJadwalAll) * 1000) / 10;
+
+  demoLaporanData = { 
+    totalPasien: totalPasienVal, totalRM: totalRMVal, totalJadwal: totalJadwalAll, selesaiAll: selesaiAll, 
+    selesaiHariIni: selesaiHariIni, antrianHariIni: antrianHariIni, rasioKehadiran: rasio, 
+    terapiBreakdown: bd, terfavorit: terfavorit 
+  };
+
+  demoTerapisData = therapists.map((t, i) => ({ 
+    ID_User: 'USR-' + (1001 + i), Username: t, Role: 'Terapis', 
+    totalSesi: Math.floor(Math.random() * 25) + 10 // 10 - 34 sesi per terapis 
+  }));
 
   demoAntrianData = {
     antrian: JSON.parse(JSON.stringify(jadwal)),
-    total: 8,
-    menunggu: 4,
-    selesai: 4
+    total: totalSesiHariIni,
+    menunggu: antrianHariIni,
+    selesai: selesaiHariIni
   };
 }
 
