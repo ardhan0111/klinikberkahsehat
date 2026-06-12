@@ -382,18 +382,10 @@ tr:hover td{background:var(--primary-bg)}
   <section class="section" id="sec-laporan">
     <h1 class="page-title">Laporan Analisis Klinik</h1>
     <p class="page-subtitle">Statistik performa operasional pelayanan terapi fisik.</p>
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-header"><h3>Pembagian Berdasarkan Jenis Terapi</h3></div>
-        <div style="padding:16px 20px" id="terapi-breakdown">
-          <div class="empty-state"><iconify-icon icon="mdi:chart-pie"></iconify-icon><p>Memuat data...</p></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header"><h3>Ringkasan Data & Statistik</h3></div>
-        <div style="padding:16px 20px" id="ringkasan-data">
-          <div class="empty-state"><iconify-icon icon="mdi:chart-box-outline"></iconify-icon><p>Memuat data...</p></div>
-        </div>
+    <div class="card">
+      <div class="card-header"><h3>Pembagian Berdasarkan Jenis Terapi</h3></div>
+      <div style="padding:16px 20px" id="terapi-breakdown">
+        <div class="empty-state"><iconify-icon icon="mdi:chart-pie"></iconify-icon><p>Memuat data...</p></div>
       </div>
     </div>
   </section>
@@ -952,17 +944,7 @@ function loadLaporan() {
       }).join('');
     }
 
-    // Ringkasan
-    const rk = document.getElementById('ringkasan-data');
-    const estimasi = ((data.selesaiHariIni || 0) * 250000);
-    rk.innerHTML = `
-      <div class="report-row"><span class="label">Total Pasien Terdaftar</span><span class="value">${data.totalPasien || 0} Pasien</span></div>
-      <div class="report-row"><span class="label">Estimasi Keuntungan Sesi Hari Ini</span><span class="value">${estimasi.toLocaleString('id-ID')}</span></div>
-      <div class="report-row"><span class="label">Sesi Selesai (Live)</span><span class="value">${data.selesaiHariIni || 0} Sesi</span></div>
-      <div class="report-row"><span class="label">Sesi Mengantre (Live)</span><span class="value">${data.antrianHariIni || 0} Sesi</span></div>
-      <div class="report-row"><span class="label">Rasio Kehadiran Sesi</span><span class="value">${data.rasioKehadiran || 0}%</span></div>
-      <div class="report-row"><span class="label">Terapi Terfavorit Bulan Ini</span><span class="value">${data.terfavorit || '-'}</span></div>
-    `;
+
   });
 }
 
