@@ -167,20 +167,21 @@ function simpanRekamMedisBackend(d) {
     ]);
 
     // Simpan ke sheet Jadwal jika ada tanggal & jam berikutnya
-    // Sheet Jadwal: ID_Jadwal | ID_Pasien | Tanggal_Terapi | Jam | Status | Status_Pengajuan | ...
+    // Sheet Jadwal: ID_Jadwal | ID_Pasien | Tanggal_Terapi | Jam | ID_Terapis | Status | Status_Pengajuan | ...
     if (d.tglNext && d.jamNext) {
       const jadwalSheet = SS.getSheetByName("Jadwal");
       if (jadwalSheet) {
         const nextJadwalId = "JDW-" + (1000 + jadwalSheet.getLastRow());
         jadwalSheet.appendRow([
-          nextJadwalId,   // ID_Jadwal
-          d.idPasien,     // ID_Pasien
-          d.tglNext,      // Tanggal_Terapi
-          d.jamNext,      // Jam
-          "Terjadwal",    // Status
-          "",             // Status_Pengajuan
-          "",             // Request_Tgl_Baru
-          ""              // Request_Jam_Baru
+          nextJadwalId,   // ID_Jadwal (Col 1)
+          d.idPasien,     // ID_Pasien (Col 2)
+          d.tglNext,      // Tanggal_Terapi (Col 3)
+          d.jamNext,      // Jam (Col 4)
+          d.terapis || "",// ID_Terapis (Col 5)
+          "Terjadwal",    // Status (Col 6)
+          "",             // Status_Pengajuan (Col 7)
+          "",             // Request_Tgl_Baru (Col 8)
+          ""              // Request_Jam_Baru (Col 9)
         ]);
       }
     }
@@ -367,7 +368,7 @@ function updateJadwalStatus(idJadwal, status) {
     const data = sheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][0]) === String(idJadwal)) {
-        sheet.getRange(i + 1, 5).setValue(status);
+        sheet.getRange(i + 1, 6).setValue(status); // Status berada di kolom 6 (F)
         return { success: true, msg: "Status antrian berhasil diperbarui." };
       }
     }
@@ -383,7 +384,7 @@ function tambahJadwalBackend(d) {
     const jadwalSheet = SS.getSheetByName("Jadwal");
     if (!jadwalSheet) return { success: false, msg: "Sheet Jadwal tidak ditemukan!" };
     const nextId = "JDW-" + (1000 + jadwalSheet.getLastRow());
-    jadwalSheet.appendRow([nextId, d.idPasien, d.tanggal, d.jam, "Terjadwal", "", "", ""]);
+    jadwalSheet.appendRow([nextId, d.idPasien, d.tanggal, d.jam, "", "Terjadwal", "", "", ""]); // Kolom 5 kosong, Kolom 6 status
     return { success: true, msg: "Jadwal berhasil ditambahkan.", id: nextId };
   } catch(e) {
     return { success: false, msg: "Error: " + e.message };
