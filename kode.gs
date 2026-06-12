@@ -108,6 +108,13 @@ function tambahPasienBackend(d) {
   try {
     const sheet = SS.getSheetByName("Pasien");
     if (!sheet) return "Error: Sheet Pasien tidak ditemukan!";
+    
+    // Auto-create headers if missing
+    if (sheet.getLastColumn() < 12) {
+      sheet.getRange(1, 11).setValue("Jenis_Terapi");
+      sheet.getRange(1, 12).setValue("Terapis");
+    }
+    
     const nextId = "PT-" + (2500 + sheet.getLastRow());
     const ttl = d.tempat + ", " + d.tglLahir;
     sheet.appendRow([nextId, d.nama, d.nik, d.jk, d.goldar, ttl, d.alamat, d.wa, d.pekerjaan, d.darurat, d.jenisTerapi || "", d.terapis || ""]);
@@ -213,6 +220,15 @@ function getInfoKlinik() {
 
 // --- DASHBOARD DATA ---
 function getDashboardData() {
+  // Auto-create Pasien headers if missing
+  try {
+    const pSheet = SS.getSheetByName("Pasien");
+    if (pSheet && pSheet.getLastColumn() < 12) {
+      pSheet.getRange(1, 11).setValue("Jenis_Terapi");
+      pSheet.getRange(1, 12).setValue("Terapis");
+    }
+  } catch(e) {}
+
   const pasien = getDataFromSheet("Pasien");
   const jadwal = getDataFromSheet("Jadwal");
   const rekamMedis = getDataFromSheet("RekamMedis");
