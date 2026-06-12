@@ -108,7 +108,7 @@ function tambahPasienBackend(d) {
   try {
     const sheet = SS.getSheetByName("Pasien");
     if (!sheet) return "Error: Sheet Pasien tidak ditemukan!";
-    const nextId = "FIS-" + (100 + sheet.getLastRow());
+    const nextId = "PT-" + (2500 + sheet.getLastRow());
     const ttl = d.tempat + ", " + d.tglLahir;
     sheet.appendRow([nextId, d.nama, d.nik, d.jk, d.goldar, ttl, d.alamat, d.wa, d.pekerjaan, d.darurat]);
     return nextId;
@@ -210,6 +210,186 @@ function getInfoKlinik() {
   }
 }
 
+// --- DASHBOARD DATA ---
+function getDashboardData() {
+  const pasien = getDataFromSheet("Pasien");
+  const jadwal = getDataFromSheet("Jadwal");
+  const rekamMedis = getDataFromSheet("RekamMedis");
+  const users = getDataFromSheet("Users");
+
+  const now = new Date();
+  const todayA = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yyyy");
+  const todayB = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
+
+  const jadwalHariIni = jadwal.filter(function(j) {
+    const t = String(j.Tanggal_Terapi).trim();
+    return t === todayA || t === todayB;
+  });
+  const selesai = jadwalHariIni.filter(function(j) { return j.Status === "Selesai"; }).length;
+  const antrian = jadwalHariIni.filter(function(j) { return j.Status === "Terjadwal"; }).length;
+
+  const pasienMap = {};
+  pasien.forEach(function(p) { pasienMap[String(p.ID_Pasien)] = p; });
+
+  const lastTerapi = {};
+  rekamMedis.forEach(function(rm) {
+    lastTerapi[String(rm.ID_Pasien)] = { tindakan: rm.Tindakan || "-", terapis: rm.ID_Terapis || "-", tanggal: rm.Tanggal };
+  });
+
+  const pasienList = pasien.map(function(p) {
+    const lt = lastTerapi[String(p.ID_Pasien)];
+    return {
+      ID_Pasien: p.ID_Pasien, Nama: p.Nama, NIK: p.NIK, JK: p.JK, No_WA: p.No_WA,
+      Alamat: p.Alamat, Pekerjaan: p.Pekerjaan, Gol_Darah: p.Gol_Darah, TTL: p.TTL,
+      jenisTerapi: lt ? lt.tindakan : "-", terapis: lt ? lt.terapis : "-"
+    };
+  });
+
+  const jadwalList = jadwalHariIni.map(function(j) {
+    const p = pasienMap[String(j.ID_Pasien)];
+    const lt = lastTerapi[String(j.ID_Pasien)];
+    return {
+      ID_Jadwal: j.ID_Jadwal, ID_Pasien: j.ID_Pasien,
+      Nama: p ? p.Nama : j.ID_Pasien, Jam: j.Jam, Status: j.Status,
+      jenisTerapi: lt ? lt.tindakan : "-", terapis: lt ? lt.terapis : "-"
+    };
+  }).sort(function(a, b) { return String(a.Jam).localeCompare(String(b.Jam)); });
+
+  const recentActivity = rekamMedis.slice(-5).reverse().map(function(rm) {
+    const p = pasienMap[String(rm.ID_Pasien)];
+    return { type: "rekam_medis", nama: p ? p.Nama : rm.ID_Pasien, tindakan: rm.Tindakan, terapis: rm.ID_Terapis, tanggal: rm.Tanggal };
+  });
+
+  const terapis = users.filter(function(u) { return u.Role === "Terapis"; });
+
+  return {
+    totalPasien: pasien.length, sesiHariIni: jadwalHariIni.length,
+    antrianHariIni: antrian, selesaiHariIni: selesai,
+    pasien: pasienList, jadwalHariIni: jadwalList,
+    recentActivity: recentActivity, totalTerapis: terapis.length, totalRM: rekamMedis.length
+  };
+}
+
+// --- LAPORAN DATA ---
+function getLaporanData() {
+  const pasien = getDataFromSheet("Pasien");
+  const rekamMedis = getDataFromSheet("RekamMedis");
+  const jadwal = getDataFromSheet("Jadwal");
+
+  const now = new Date();
+  const todayA = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yyyy");
+  const todayB = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
+
+  const jadwalHariIni = jadwal.filter(function(j) {
+    const t = String(j.Tanggal_Terapi).trim();
+    return t === todayA || t === todayB;
+  });
+  const selesaiHariIni = jadwalHariIni.filter(function(j) { return j.Status === "Selesai"; }).length;
+  const antrianHariIni = jadwalHariIni.filter(function(j) { return j.Status === "Terjadwal"; }).length;
+
+  const terapiCount = {};
+  rekamMedis.forEach(function(rm) {
+    const t = rm.Tindakan || "Lainnya";
+    terapiCount[t] = (terapiCount[t] || 0) + 1;
+  });
+
+  const selesaiAll = jadwal.filter(function(j) { return j.Status === "Selesai"; }).length;
+  const rasio = jadwal.length > 0 ? Math.round((selesaiAll / jadwal.length) * 1000) / 10 : 0;
+
+  let maxCount = 0, terfavorit = "-";
+  for (const key in terapiCount) {
+    if (terapiCount[key] > maxCount) { maxCount = terapiCount[key]; terfavorit = key; }
+  }
+
+  return {
+    totalPasien: pasien.length, totalRM: rekamMedis.length,
+    totalJadwal: jadwal.length, selesaiAll: selesaiAll,
+    selesaiHariIni: selesaiHariIni, antrianHariIni: antrianHariIni,
+    rasioKehadiran: rasio, terapiBreakdown: terapiCount, terfavorit: terfavorit
+  };
+}
+
+// --- TERAPIS DATA ---
+function getTerapisData() {
+  const users = getDataFromSheet("Users");
+  const rekamMedis = getDataFromSheet("RekamMedis");
+
+  const terapis = users.filter(function(u) { return u.Role === "Terapis"; });
+
+  return terapis.map(function(t) {
+    const rmCount = rekamMedis.filter(function(rm) { return rm.ID_Terapis === t.Username; }).length;
+    return { ID_User: t.ID_User, Username: t.Username, Role: t.Role, totalSesi: rmCount };
+  });
+}
+
+// --- ANTRIAN DATA ---
+function getAntrianData() {
+  const jadwal = getDataFromSheet("Jadwal");
+  const pasien = getDataFromSheet("Pasien");
+  const rekamMedis = getDataFromSheet("RekamMedis");
+
+  const now = new Date();
+  const todayA = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yyyy");
+  const todayB = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
+
+  const pasienMap = {};
+  pasien.forEach(function(p) { pasienMap[String(p.ID_Pasien)] = p; });
+  const lastTerapi = {};
+  rekamMedis.forEach(function(rm) {
+    lastTerapi[String(rm.ID_Pasien)] = { tindakan: rm.Tindakan, terapis: rm.ID_Terapis };
+  });
+
+  const antrianHariIni = jadwal.filter(function(j) {
+    const t = String(j.Tanggal_Terapi).trim();
+    return t === todayA || t === todayB;
+  }).map(function(j) {
+    const p = pasienMap[String(j.ID_Pasien)];
+    const lt = lastTerapi[String(j.ID_Pasien)];
+    return {
+      ID_Jadwal: j.ID_Jadwal, ID_Pasien: j.ID_Pasien,
+      Nama: p ? p.Nama : j.ID_Pasien, Jam: j.Jam, Status: j.Status,
+      jenisTerapi: lt ? lt.tindakan : "-", terapis: lt ? lt.terapis : "-"
+    };
+  }).sort(function(a, b) { return String(a.Jam).localeCompare(String(b.Jam)); });
+
+  return {
+    antrian: antrianHariIni, total: antrianHariIni.length,
+    menunggu: antrianHariIni.filter(function(a) { return a.Status === "Terjadwal"; }).length,
+    selesai: antrianHariIni.filter(function(a) { return a.Status === "Selesai"; }).length
+  };
+}
+
+// --- UPDATE STATUS JADWAL ---
+function updateJadwalStatus(idJadwal, status) {
+  try {
+    const sheet = SS.getSheetByName("Jadwal");
+    if (!sheet) return { success: false, msg: "Sheet Jadwal tidak ditemukan!" };
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(idJadwal)) {
+        sheet.getRange(i + 1, 5).setValue(status);
+        return { success: true, msg: "Status antrian berhasil diperbarui." };
+      }
+    }
+    return { success: false, msg: "ID Jadwal tidak ditemukan." };
+  } catch(e) {
+    return { success: false, msg: "Error: " + e.message };
+  }
+}
+
+// --- TAMBAH JADWAL LANGSUNG ---
+function tambahJadwalBackend(d) {
+  try {
+    const jadwalSheet = SS.getSheetByName("Jadwal");
+    if (!jadwalSheet) return { success: false, msg: "Sheet Jadwal tidak ditemukan!" };
+    const nextId = "JDW-" + (1000 + jadwalSheet.getLastRow());
+    jadwalSheet.appendRow([nextId, d.idPasien, d.tanggal, d.jam, "Terjadwal", "", "", ""]);
+    return { success: true, msg: "Jadwal berhasil ditambahkan.", id: nextId };
+  } catch(e) {
+    return { success: false, msg: "Error: " + e.message };
+  }
+}
+
 // --- API WEB ENDPOINT (CORS & VERCEL SUPPORT) ---
 function doPost(e) {
   try {
@@ -240,6 +420,18 @@ function doPost(e) {
       result = getDataFromSheet(args[0]);
     } else if (fnName === "getInfoKlinik") {
       result = getInfoKlinik();
+    } else if (fnName === "getDashboardData") {
+      result = getDashboardData();
+    } else if (fnName === "getLaporanData") {
+      result = getLaporanData();
+    } else if (fnName === "getTerapisData") {
+      result = getTerapisData();
+    } else if (fnName === "getAntrianData") {
+      result = getAntrianData();
+    } else if (fnName === "updateJadwalStatus") {
+      result = updateJadwalStatus(args[0], args[1]);
+    } else if (fnName === "tambahJadwalBackend") {
+      result = tambahJadwalBackend(args[0]);
     } else {
       throw new Error("Fungsi '" + fnName + "' tidak ditemukan di backend.");
     }
