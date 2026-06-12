@@ -103,14 +103,14 @@ function hapusData(sheetName, rowNumber) {
   }
 }
 
-// Sheet Pasien kolom: ID_Pasien | Nama | NIK | JK | Gol_Darah | TTL | Alamat | No_WA | Pekerjaan | Kontak_Darurat
+// Sheet Pasien kolom: ID_Pasien | Nama | NIK | JK | Gol_Darah | TTL | Alamat | No_WA | Pekerjaan | Kontak_Darurat | Jenis_Terapi | Terapis
 function tambahPasienBackend(d) {
   try {
     const sheet = SS.getSheetByName("Pasien");
     if (!sheet) return "Error: Sheet Pasien tidak ditemukan!";
     const nextId = "PT-" + (2500 + sheet.getLastRow());
     const ttl = d.tempat + ", " + d.tglLahir;
-    sheet.appendRow([nextId, d.nama, d.nik, d.jk, d.goldar, ttl, d.alamat, d.wa, d.pekerjaan, d.darurat]);
+    sheet.appendRow([nextId, d.nama, d.nik, d.jk, d.goldar, ttl, d.alamat, d.wa, d.pekerjaan, d.darurat, d.jenisTerapi || "", d.terapis || ""]);
     return nextId;
   } catch(e) {
     return "Error: " + e.message;
@@ -242,7 +242,8 @@ function getDashboardData() {
     return {
       ID_Pasien: p.ID_Pasien, Nama: p.Nama, NIK: p.NIK, JK: p.JK, No_WA: p.No_WA,
       Alamat: p.Alamat, Pekerjaan: p.Pekerjaan, Gol_Darah: p.Gol_Darah, TTL: p.TTL,
-      jenisTerapi: lt ? lt.tindakan : "-", terapis: lt ? lt.terapis : "-"
+      jenisTerapi: lt ? lt.tindakan : (p.Jenis_Terapi || "-"),
+      terapis: lt ? lt.terapis : (p.Terapis || "-")
     };
   });
 

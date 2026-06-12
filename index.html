@@ -440,6 +440,23 @@ tr:hover td{background:var(--primary-bg)}
         <div class="form-row"><label>Pekerjaan</label><input id="f-pekerjaan" placeholder="Pekerjaan"></div>
         <div class="form-row"><label>Kontak Darurat</label><input id="f-darurat" placeholder="Nama & No. HP"></div>
       </div>
+      <div class="form-grid">
+        <div class="form-row"><label>Jenis Terapi Utama</label>
+          <select id="f-terapi">
+            <option value="Terapi Muskuloskeletal">Terapi Muskuloskeletal</option>
+            <option value="Terapi Neurologis">Terapi Neurologis</option>
+            <option value="Terapi Pediatri">Terapi Pediatri</option>
+            <option value="Terapi Olahraga">Terapi Olahraga</option>
+            <option value="Terapi Geriatri">Terapi Geriatri</option>
+            <option value="Terapi Kardiorespirasi">Terapi Kardiorespirasi</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Terapis Penanggung Jawab</label>
+          <select id="f-terapis">
+            <!-- Populate dynamically -->
+          </select>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeModal('modal-pasien')">Batal</button>
@@ -724,6 +741,14 @@ function loadDashboard() {
     renderJadwal(data.jadwalHariIni || []);
     renderActivity(data.recentActivity || []);
   });
+
+  // Populate therapist list in modal select dropdown
+  gasRun('getTerapisData', [], function(data) {
+    const select = document.getElementById('f-terapis');
+    if (select && data) {
+      select.innerHTML = data.map(t => `<option value="${t.Username}">${t.Username}</option>`).join('');
+    }
+  });
 }
 
 // ===== RENDER PASIEN DASHBOARD TABLE =====
@@ -957,7 +982,9 @@ function doSavePasien() {
     tglLahir: document.getElementById('f-tgl').value,
     alamat: document.getElementById('f-alamat').value.trim(),
     pekerjaan: document.getElementById('f-pekerjaan').value.trim(),
-    darurat: document.getElementById('f-darurat').value.trim()
+    darurat: document.getElementById('f-darurat').value.trim(),
+    jenisTerapi: document.getElementById('f-terapi').value,
+    terapis: document.getElementById('f-terapis').value
   };
   if (!d.nama) { toast('Nama wajib diisi!', 'error'); return; }
   gasRun('tambahPasienBackend', [d], function(res) {
