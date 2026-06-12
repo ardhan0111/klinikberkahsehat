@@ -685,7 +685,8 @@ function getDemoData(fnName, args) {
     const newPasien = {
       ID_Pasien: nextId, Nama: d.nama, NIK: d.nik, JK: d.jk, No_WA: d.wa,
       Alamat: d.alamat, Pekerjaan: d.pekerjaan, Gol_Darah: d.goldar, TTL: ttl,
-      jenisTerapi: '-', terapis: '-'
+      jenisTerapi: d.jenisTerapi || '-',
+      terapis: d.terapis || '-'
     };
     demoDashboardData.pasien.push(newPasien);
     demoDashboardData.totalPasien = demoDashboardData.pasien.length;

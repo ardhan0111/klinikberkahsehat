@@ -258,8 +258,8 @@ function getDashboardData() {
     return {
       ID_Pasien: p.ID_Pasien, Nama: p.Nama, NIK: p.NIK, JK: p.JK, No_WA: p.No_WA,
       Alamat: p.Alamat, Pekerjaan: p.Pekerjaan, Gol_Darah: p.Gol_Darah, TTL: p.TTL,
-      jenisTerapi: lt ? lt.tindakan : (p.Jenis_Terapi || "-"),
-      terapis: lt ? lt.terapis : (p.Terapis || "-")
+      jenisTerapi: lt ? lt.tindakan : (p.Jenis_Terapi || p["Jenis Terapi"] || p.jenisTerapi || "-"),
+      terapis: lt ? lt.terapis : (p.Terapis || p.terapis || "-")
     };
   });
 
